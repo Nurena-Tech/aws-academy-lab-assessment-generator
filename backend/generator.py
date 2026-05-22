@@ -147,6 +147,25 @@ def generate_assessment(course_name, certification, certification_name, module_n
 
     cert_info = CERTIFICATION_DOMAINS.get(certification, CERTIFICATION_DOMAINS["CLF-C02"])
     lab_time_target = "60 minutes" if certification == "SAA-C03" else "30 minutes"
+
+    if certification == "CLF-C02":
+        mcq_difficulty = """DIFFICULTY LEVEL: FOUNDATIONAL (Cloud Practitioner)
+- Questions should test understanding of concepts, definitions, and high-level use cases
+- Focus on "what" and "why" — not deep implementation details
+- Scenarios should be straightforward, single-service or simple comparisons
+- Avoid multi-step architectural decisions or complex troubleshooting
+- Bloom's Taxonomy levels: Remember, Understand, and basic Apply
+- Example stems: "Which AWS service...", "What is the primary benefit of...", "A company wants to... Which service should they use?"
+- Distractors should target common confusion between similar services or basic misunderstandings"""
+    else:
+        mcq_difficulty = """DIFFICULTY LEVEL: ASSOCIATE (Solutions Architect)
+- Questions should test the ability to design, evaluate, and troubleshoot architectures
+- Focus on "how" — selecting appropriate services, configurations, and trade-offs
+- Scenarios should involve multiple services, constraints, and requirements
+- Include questions requiring analysis of architecture diagrams or multi-step reasoning
+- Bloom's Taxonomy levels: Apply, Analyze, and Evaluate
+- Example stems: "A company needs a highly available architecture that... Which combination of services...", "An architect must reduce latency while maintaining... What should they recommend?"
+- Distractors should represent valid AWS services/approaches that don't meet all the stated requirements"""
     domains_text = "\n".join(f"  - {d}" for d in cert_info["domains"])
     topics_text = "\n".join(f"  - {t}" for t in (module_topics or []))
     existing_labs_text = "\n".join(f"  - {l}" for l in (existing_labs or []))
@@ -202,6 +221,7 @@ Map this objective to the most relevant exam domain(s) and explain why.
 
 {"### 3. Multiple Choice Questions (" + str(num_mcq) + " questions)" if num_mcq > 0 else "### 3. Multiple Choice Questions: DO NOT GENERATE. Set multiple_choice_questions to an empty array [] in the JSON response."}
 {'''For each question:
+''' + mcq_difficulty + '''
 - Questions MUST be based on the topics covered in this specific module
 - Questions should help students prepare for the aligned certification exam
 - Use scenario-based stems relevant to the module topics (not just factual recall)
