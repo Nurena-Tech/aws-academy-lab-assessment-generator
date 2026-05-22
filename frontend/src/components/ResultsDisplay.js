@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import QuizMode from './QuizMode';
 
 function ResultsDisplay({ results }) {
-  const [activeTab, setActiveTab] = useState('markdown');
+  const mcqs = results.json_output?.multiple_choice_questions || [];
+  const hasMcqs = mcqs.length > 0;
+  const [activeTab, setActiveTab] = useState(hasMcqs ? 'quiz' : 'markdown');
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (content) => {
@@ -53,6 +56,14 @@ function ResultsDisplay({ results }) {
       </div>
 
       <div className="tabs">
+        {hasMcqs && (
+          <button
+            className={`tab ${activeTab === 'quiz' ? 'active' : ''}`}
+            onClick={() => setActiveTab('quiz')}
+          >
+            Practice Quiz
+          </button>
+        )}
         <button
           className={`tab ${activeTab === 'markdown' ? 'active' : ''}`}
           onClick={() => setActiveTab('markdown')}
@@ -68,7 +79,9 @@ function ResultsDisplay({ results }) {
       </div>
 
       <div className="results-content">
-        {activeTab === 'markdown' ? (
+        {activeTab === 'quiz' ? (
+          <QuizMode questions={mcqs} />
+        ) : activeTab === 'markdown' ? (
           <div className="markdown-view">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {results.markdown_output}
