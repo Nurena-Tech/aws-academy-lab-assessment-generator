@@ -29,8 +29,19 @@ Creating these materials manually requires deep knowledge of Learner Lab restric
 | Output | Description |
 |--------|-------------|
 | **Hands-On Lab** | Scenario-based lab with step-by-step instructions, verification steps, cleanup, and troubleshooting — all within Learner Lab restrictions |
-| **Exam Prep MCQs** | Scenario-based multiple choice questions aligned to the module topics and certification domains, with distractor analysis |
-| **Grading Rubric** | Criteria-based rubric with 4 performance levels and point allocations |
+| **Exam Prep MCQs** | Scenario-based multiple choice questions with difficulty calibrated to certification level (Foundational vs Associate), with distractor analysis |
+| **Interactive Practice Quiz** | Students take MCQs in real exam format — answer all questions, submit, then see score with per-question explanations |
+| **Grading Rubric** | Criteria-based rubric with 4 performance levels and point allocations (tied to lab output) |
+
+### Key Features
+
+- **Dynamic button** — Generate button text reflects selected options (Lab, MCQs, Rubric)
+- **Certification-calibrated difficulty** — Cloud Practitioner MCQs test concepts/definitions; Solutions Architect MCQs test architectural design and trade-offs
+- **Course-specific time limits** — Cloud Foundations labs: 30 min max; Cloud Architecting labs: 60 min max
+- **Parallel generation** — MCQs and Lab are generated simultaneously for faster results
+- **Fast MCQ generation** — MCQs use Claude Haiku for ~1 minute response time
+- **Answer Key gating** — Answer Key is hidden until the learner completes the practice quiz
+- **Separate result views** — Dedicated tabs for Practice Quiz, Answer Key, Lab Instructions, and JSON output
 
 ---
 
@@ -69,15 +80,15 @@ All generated labs automatically respect these restrictions:
 | **CloudFront** | CDN for the web app |
 | **API Gateway (HTTP)** | Routes API requests to Lambda |
 | **Lambda** | Runs FastAPI backend + async worker for AI generation |
-| **Amazon Bedrock** | Claude Sonnet 4.6 for content generation |
+| **Amazon Bedrock** | Claude Sonnet 4.6 for lab generation, Claude Haiku 4.5 for fast MCQ generation |
 | **IAM** | Least-privilege role for Lambda |
 | **CloudFormation** | Infrastructure as code |
 
 ### Async Pattern
 
-Since content generation takes 60-90 seconds (exceeding API Gateway's 30s timeout):
+Since content generation takes 30-90 seconds (exceeding API Gateway's 30s timeout):
 1. `POST /api/generate` → stores "processing" status in S3, invokes a worker Lambda asynchronously, returns job ID immediately
-2. Worker Lambda calls Bedrock, writes results to S3
+2. Worker Lambda calls Bedrock (Lab + MCQs in parallel threads when both are requested), writes results to S3
 3. Frontend polls `GET /api/results/{job_id}` every 5 seconds until complete
 
 ---
@@ -171,6 +182,7 @@ Modules are fetched live from Canvas — no additional configuration needed.
 - Batch generation for entire courses
 - History of generated content with versioning
 - Collaborative review workflow for generated materials
+- Canvas LMS course creation with AI-generated video content
 
 ---
 

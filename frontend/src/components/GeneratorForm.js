@@ -135,7 +135,10 @@ function GeneratorForm({ onGenerate, loading }) {
             <input
               type="checkbox"
               checked={includeLab}
-              onChange={(e) => setIncludeLab(e.target.checked)}
+              onChange={(e) => {
+                setIncludeLab(e.target.checked);
+                if (!e.target.checked) setIncludeRubric(false);
+              }}
               disabled={loading}
             />
             Hands-On Lab (AWS Academy Learner Lab)
@@ -145,7 +148,7 @@ function GeneratorForm({ onGenerate, loading }) {
               type="checkbox"
               checked={includeRubric}
               onChange={(e) => setIncludeRubric(e.target.checked)}
-              disabled={loading}
+              disabled={loading || !includeLab}
             />
             Grading Rubric
           </label>
@@ -177,7 +180,11 @@ function GeneratorForm({ onGenerate, loading }) {
       </div>
 
       <button type="submit" className="generate-btn" disabled={loading || !selectedModule || (!includeLab && !includeMcq)}>
-        {loading ? 'Generating...' : 'Generate Lab & Assessment'}
+        {loading ? 'Generating...' : `Generate ${[
+          includeLab && 'Lab',
+          includeMcq && 'MCQs',
+          includeRubric && 'Rubric',
+        ].filter(Boolean).join(' & ')}`}
       </button>
     </form>
   );
