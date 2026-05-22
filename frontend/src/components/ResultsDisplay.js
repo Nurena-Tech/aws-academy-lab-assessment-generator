@@ -100,24 +100,22 @@ function ResultsDisplay({ results }) {
       </div>
 
       <div className="results-content">
-        {activeTab === 'quiz' && (
-          <div>
-            <QuizMode questions={mcqs} onSubmit={() => setQuizSubmitted(true)} answersRevealed={showAnswers} />
-            {quizSubmitted && !showAnswers && (
-              <button
-                className="show-answers-btn"
-                onClick={() => setShowAnswers(true)}
-              >
-                Show Answer Key
-              </button>
-            )}
-          </div>
-        )}
-        {activeTab === 'mcqs' && (
+        <div style={{ display: activeTab === 'quiz' ? 'block' : 'none' }}>
+          <QuizMode questions={mcqs} onSubmit={() => setQuizSubmitted(true)} answersRevealed={showAnswers} />
+          {quizSubmitted && !showAnswers && (
+            <button
+              className="show-answers-btn"
+              onClick={() => setShowAnswers(true)}
+            >
+              Show Answer Key
+            </button>
+          )}
+        </div>
+        <div style={{ display: activeTab === 'mcqs' ? 'block' : 'none' }}>
           <div className="markdown-view">
             <McqsFormattedView questions={mcqs} />
           </div>
-        )}
+        </div>
         {activeTab === 'lab' && (
           <div className="markdown-view">
             <LabFormattedView lab={lab} rubric={rubric} />
