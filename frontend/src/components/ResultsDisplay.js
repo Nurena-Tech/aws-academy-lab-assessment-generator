@@ -13,6 +13,7 @@ function ResultsDisplay({ results }) {
   const defaultTab = hasMcqs ? 'quiz' : hasLab ? 'lab' : 'json';
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [copied, setCopied] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(false);
 
   const handleCopy = (content) => {
     navigator.clipboard.writeText(content);
@@ -73,12 +74,12 @@ function ResultsDisplay({ results }) {
             Practice Quiz
           </button>
         )}
-        {hasMcqs && (
+        {hasMcqs && showAnswers && (
           <button
             className={`tab ${activeTab === 'mcqs' ? 'active' : ''}`}
             onClick={() => setActiveTab('mcqs')}
           >
-            MCQs (Formatted)
+            Answer Key
           </button>
         )}
         {hasLab && (
@@ -98,7 +99,19 @@ function ResultsDisplay({ results }) {
       </div>
 
       <div className="results-content">
-        {activeTab === 'quiz' && <QuizMode questions={mcqs} />}
+        {activeTab === 'quiz' && (
+          <div>
+            <QuizMode questions={mcqs} />
+            {!showAnswers && (
+              <button
+                className="show-answers-btn"
+                onClick={() => setShowAnswers(true)}
+              >
+                Show Answer Key
+              </button>
+            )}
+          </div>
+        )}
         {activeTab === 'mcqs' && (
           <div className="markdown-view">
             <McqsFormattedView questions={mcqs} />

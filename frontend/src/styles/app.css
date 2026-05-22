@@ -369,6 +369,25 @@ body {
   padding-left: 1.25rem;
 }
 
+.show-answers-btn {
+  display: block;
+  margin: 1.5rem auto 0;
+  padding: 0.6rem 1.5rem;
+  background: #f0f4f8;
+  border: 2px solid #6c757d;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.show-answers-btn:hover {
+  background: #6c757d;
+  color: white;
+}
+
 /* Lab Formatted View */
 .lab-step {
   margin-bottom: 1.5rem;
