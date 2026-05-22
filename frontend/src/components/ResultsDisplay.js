@@ -5,8 +5,13 @@ import QuizMode from './QuizMode';
 
 function ResultsDisplay({ results }) {
   const mcqs = results.json_output?.multiple_choice_questions || [];
+  const lab = results.json_output?.lab_instructions;
+  const rubric = results.json_output?.rubric;
   const hasMcqs = mcqs.length > 0;
-  const [activeTab, setActiveTab] = useState(hasMcqs ? 'quiz' : 'markdown');
+  const hasLab = lab && lab.title;
+
+  const defaultTab = hasMcqs ? 'quiz' : hasLab ? 'lab' : 'json';
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [copied, setCopied] = useState(false);
 
   const handleCopy = (content) => {
@@ -25,6 +30,12 @@ function ResultsDisplay({ results }) {
     URL.revokeObjectURL(url);
   };
 
+  const getActiveContent = () => {
+    if (activeTab === 'quiz' || activeTab === 'mcqs') return results.markdown_output;
+    if (activeTab === 'lab') return formatLabMarkdown(lab, rubric);
+    return JSON.stringify(results.json_output, null, 2);
+  };
+
   return (
     <div className="results">
       <div className="results-header">
@@ -32,9 +43,7 @@ function ResultsDisplay({ results }) {
         <div className="results-actions">
           <button
             className="action-btn"
-            onClick={() => handleCopy(
-              activeTab === 'markdown' ? results.markdown_output : JSON.stringify(results.json_output, null, 2)
-            )}
+            onClick={() => handleCopy(getActiveContent())}
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>
@@ -64,12 +73,22 @@ function ResultsDisplay({ results }) {
             Practice Quiz
           </button>
         )}
-        <button
-          className={`tab ${activeTab === 'markdown' ? 'active' : ''}`}
-          onClick={() => setActiveTab('markdown')}
-        >
-          Formatted View
-        </button>
+        {hasMcqs && (
+          <button
+            className={`tab ${activeTab === 'mcqs' ? 'active' : ''}`}
+            onClick={() => setActiveTab('mcqs')}
+          >
+            MCQs (Formatted)
+          </button>
+        )}
+        {hasLab && (
+          <button
+            className={`tab ${activeTab === 'lab' ? 'active' : ''}`}
+            onClick={() => setActiveTab('lab')}
+          >
+            Lab Instructions
+          </button>
+        )}
         <button
           className={`tab ${activeTab === 'json' ? 'active' : ''}`}
           onClick={() => setActiveTab('json')}
@@ -79,15 +98,18 @@ function ResultsDisplay({ results }) {
       </div>
 
       <div className="results-content">
-        {activeTab === 'quiz' ? (
-          <QuizMode questions={mcqs} />
-        ) : activeTab === 'markdown' ? (
+        {activeTab === 'quiz' && <QuizMode questions={mcqs} />}
+        {activeTab === 'mcqs' && (
           <div className="markdown-view">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {results.markdown_output}
-            </ReactMarkdown>
+            <McqsFormattedView questions={mcqs} />
           </div>
-        ) : (
+        )}
+        {activeTab === 'lab' && (
+          <div className="markdown-view">
+            <LabFormattedView lab={lab} rubric={rubric} />
+          </div>
+        )}
+        {activeTab === 'json' && (
           <pre className="json-view">
             {JSON.stringify(results.json_output, null, 2)}
           </pre>
@@ -95,6 +117,162 @@ function ResultsDisplay({ results }) {
       </div>
     </div>
   );
+}
+
+function McqsFormattedView({ questions }) {
+  return (
+    <div>
+      <h2>Multiple Choice Questions</h2>
+      {questions.map((q, i) => (
+        <div key={i} className="mcq-formatted">
+          <h3>Question {q.question_number || i + 1}</h3>
+          {q.scenario && <p className="mcq-scenario"><em>Scenario:</em> {q.scenario}</p>}
+          <p><strong>{q.stem}</strong></p>
+          <ul className="mcq-options-list">
+            {Object.entries(q.options || {}).map(([letter, text]) => (
+              <li key={letter} className={letter === q.correct_answer ? 'correct-answer' : ''}>
+                <strong>{letter}.</strong> {text}
+                {letter === q.correct_answer && <span className="answer-badge">Correct</span>}
+              </li>
+            ))}
+          </ul>
+          <div className="mcq-explanation">
+            <strong>Explanation:</strong> {q.explanation}
+          </div>
+          {q.distractors && (
+            <div className="mcq-distractors">
+              <strong>Distractor Analysis:</strong>
+              <ul>
+                {Object.entries(q.distractors).map(([letter, text]) => (
+                  <li key={letter}><strong>{letter}:</strong> {text}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <hr />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function LabFormattedView({ lab, rubric }) {
+  if (!lab) return null;
+
+  return (
+    <div>
+      <h2>{lab.title}</h2>
+      <p><strong>Estimated Time:</strong> {lab.estimated_time}</p>
+      <p><strong>Environment:</strong> {lab.environment}</p>
+      <p><strong>Region:</strong> {lab.region}</p>
+      <p><strong>IAM Role:</strong> {lab.iam_role}</p>
+
+      <h3>Scenario</h3>
+      <p>{lab.scenario}</p>
+
+      {lab.prerequisites && lab.prerequisites.length > 0 && (
+        <>
+          <h3>Prerequisites</h3>
+          <ul>
+            {lab.prerequisites.map((p, i) => <li key={i}>{p}</li>)}
+          </ul>
+        </>
+      )}
+
+      {lab.steps && lab.steps.length > 0 && (
+        <>
+          <h3>Instructions</h3>
+          {lab.steps.map((step, i) => (
+            <div key={i} className="lab-step">
+              <h4>Step {step.step_number}: {step.title}</h4>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {step.instructions}
+              </ReactMarkdown>
+              {step.expected_outcome && (
+                <blockquote>
+                  <strong>Expected Outcome:</strong> {step.expected_outcome}
+                </blockquote>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+
+      {lab.verification && lab.verification.length > 0 && (
+        <>
+          <h3>Verification</h3>
+          <ul>
+            {lab.verification.map((v, i) => <li key={i}>{v}</li>)}
+          </ul>
+        </>
+      )}
+
+      {lab.cleanup && lab.cleanup.length > 0 && (
+        <>
+          <h3>Clean-Up</h3>
+          <ol>
+            {lab.cleanup.map((c, i) => <li key={i}>{c}</li>)}
+          </ol>
+        </>
+      )}
+
+      {lab.troubleshooting && lab.troubleshooting.length > 0 && (
+        <>
+          <h3>Troubleshooting</h3>
+          {lab.troubleshooting.map((t, i) => (
+            <div key={i} className="troubleshooting-item">
+              <strong>{t.issue}:</strong> {t.solution}
+            </div>
+          ))}
+        </>
+      )}
+
+      {rubric && rubric.criteria && rubric.criteria.length > 0 && (
+        <>
+          <h3>Grading Rubric</h3>
+          <p><strong>Total Points:</strong> {rubric.total_points}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Criterion</th>
+                <th>Points</th>
+                <th>Excellent (4)</th>
+                <th>Proficient (3)</th>
+                <th>Developing (2)</th>
+                <th>Beginning (1)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rubric.criteria.map((c, i) => (
+                <tr key={i}>
+                  <td>{c.criterion}</td>
+                  <td>{c.points}</td>
+                  <td>{c.excellent_4}</td>
+                  <td>{c.proficient_3}</td>
+                  <td>{c.developing_2}</td>
+                  <td>{c.beginning_1}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+function formatLabMarkdown(lab, rubric) {
+  if (!lab) return '';
+  let md = `# ${lab.title}\n\n`;
+  md += `**Estimated Time:** ${lab.estimated_time}\n\n`;
+  md += `## Scenario\n${lab.scenario}\n\n`;
+  if (lab.steps) {
+    md += '## Instructions\n\n';
+    lab.steps.forEach(s => {
+      md += `### Step ${s.step_number}: ${s.title}\n${s.instructions}\n\n`;
+    });
+  }
+  return md;
 }
 
 export default ResultsDisplay;
