@@ -116,6 +116,12 @@ bash deploy.sh
 
 This deploys the full stack: CloudFormation infrastructure, Lambda code, React frontend to S3, and invalidates CloudFront.
 
+### Get the App URL
+
+```bash
+aws cloudformation describe-stacks --stack-name lab-assessment-generator --region us-west-2 --profile nurena-bedrock-account --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontURL`].OutputValue' --output text --no-cli-pager
+```
+
 ---
 
 ## API Endpoints
