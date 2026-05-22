@@ -59,12 +59,7 @@ All generated labs automatically respect these restrictions:
 
 ## Architecture
 
-```
-Educator Browser → CloudFront → S3 (React frontend)
-                 → API Gateway → Lambda (FastAPI) → Bedrock (Claude Sonnet 4.6)
-                                                  → Canvas LMS API (module data)
-                                                  → S3 (job results)
-```
+![AWS Academy Lab & Assessment Generator Architecture](AWS%20Academy%20Lab%20%26%20Assessment%20Generator%20Architecture.png)
 
 ### AWS Services Used
 
