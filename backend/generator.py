@@ -5,7 +5,7 @@ import json
 import anthropic
 
 BEDROCK_MODEL = "us.anthropic.claude-sonnet-4-6"
-BEDROCK_MODEL_FAST = "us.anthropic.claude-haiku-4-5-20251001"
+BEDROCK_MODEL_FAST = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are an expert AWS Academy instructional designer and assessment author. You create high-quality, scenario-based lab instructions, quiz questions, rubrics, and assessment materials aligned to AWS certification exam domains.
 
