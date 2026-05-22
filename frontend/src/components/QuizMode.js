@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function QuizMode({ questions }) {
+function QuizMode({ questions, onSubmit }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -11,6 +11,7 @@ function QuizMode({ questions }) {
 
   const handleSubmit = () => {
     setSubmitted(true);
+    if (onSubmit) onSubmit();
   };
 
   const handleRetry = () => {

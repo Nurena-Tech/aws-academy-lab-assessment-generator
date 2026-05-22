@@ -14,6 +14,7 @@ function ResultsDisplay({ results }) {
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
 
   const handleCopy = (content) => {
     navigator.clipboard.writeText(content);
@@ -101,8 +102,8 @@ function ResultsDisplay({ results }) {
       <div className="results-content">
         {activeTab === 'quiz' && (
           <div>
-            <QuizMode questions={mcqs} />
-            {!showAnswers && (
+            <QuizMode questions={mcqs} onSubmit={() => setQuizSubmitted(true)} />
+            {quizSubmitted && !showAnswers && (
               <button
                 className="show-answers-btn"
                 onClick={() => setShowAnswers(true)}
