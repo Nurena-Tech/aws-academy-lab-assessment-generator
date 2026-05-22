@@ -5,6 +5,7 @@ import json
 import anthropic
 
 BEDROCK_MODEL = "us.anthropic.claude-sonnet-4-6"
+BEDROCK_MODEL_FAST = "us.anthropic.claude-haiku-4-5-20251001"
 
 SYSTEM_PROMPT = """You are an expert AWS Academy instructional designer and assessment author. You create high-quality, scenario-based lab instructions, quiz questions, rubrics, and assessment materials aligned to AWS certification exam domains.
 
@@ -320,3 +321,99 @@ IMPORTANT REMINDERS:
             pass
 
     return {"error": "Failed to parse response", "raw_response": response_text}
+
+
+def generate_mcqs_only(course_name, certification, certification_name, module_name,
+                       module_topics=None, learning_objective="", num_mcq=5):
+    """Generate MCQs using a faster model for quicker response times."""
+    client = get_client()
+    if isinstance(client, anthropic.AnthropicBedrock):
+        model = BEDROCK_MODEL_FAST
+    else:
+        model = "claude-haiku-4-5-20251001"
+
+    cert_info = CERTIFICATION_DOMAINS.get(certification, CERTIFICATION_DOMAINS["CLF-C02"])
+    domains_text = "\n".join(f"  - {d}" for d in cert_info["domains"])
+    topics_text = "\n".join(f"  - {t}" for t in (module_topics or []))
+
+    if certification == "CLF-C02":
+        mcq_difficulty = """DIFFICULTY LEVEL: FOUNDATIONAL (Cloud Practitioner)
+- Questions should test understanding of concepts, definitions, and high-level use cases
+- Focus on "what" and "why" — not deep implementation details
+- Scenarios should be straightforward, single-service or simple comparisons
+- Avoid multi-step architectural decisions or complex troubleshooting
+- Bloom's Taxonomy levels: Remember, Understand, and basic Apply
+- Example stems: "Which AWS service...", "What is the primary benefit of...", "A company wants to... Which service should they use?"
+- Distractors should target common confusion between similar services or basic misunderstandings"""
+    else:
+        mcq_difficulty = """DIFFICULTY LEVEL: ASSOCIATE (Solutions Architect)
+- Questions should test the ability to design, evaluate, and troubleshoot architectures
+- Focus on "how" — selecting appropriate services, configurations, and trade-offs
+- Scenarios should involve multiple services, constraints, and requirements
+- Include questions requiring analysis of architecture diagrams or multi-step reasoning
+- Bloom's Taxonomy levels: Apply, Analyze, and Evaluate
+- Example stems: "A company needs a highly available architecture that... Which combination of services...", "An architect must reduce latency while maintaining... What should they recommend?"
+- Distractors should represent valid AWS services/approaches that don't meet all the stated requirements"""
+
+    prompt = f"""Generate {num_mcq} multiple choice questions for the following AWS Academy course module.
+
+## Course
+{course_name}
+
+## Module
+{module_name}
+
+## Topics Covered
+{topics_text if topics_text else "  (No specific topics listed)"}
+
+## Aligned Certification
+{certification_name} ({certification})
+Exam Domains:
+{domains_text}
+
+{"## Additional Focus: " + learning_objective if learning_objective else ""}
+
+## Requirements
+{mcq_difficulty}
+
+For each question generate:
+- A scenario (real-world context)
+- A question stem
+- 4 options (A, B, C, D)
+- The correct answer letter
+- Explanation of why it's correct
+- For each distractor: the misconception it targets
+
+Respond ONLY with valid JSON:
+{{
+  "multiple_choice_questions": [
+    {{
+      "question_number": 1,
+      "scenario": "...",
+      "stem": "...",
+      "options": {{"A": "...", "B": "...", "C": "...", "D": "..."}},
+      "correct_answer": "A",
+      "explanation": "...",
+      "distractors": {{"B": "...", "C": "...", "D": "..."}}
+    }}
+  ]
+}}"""
+
+    message = client.messages.create(
+        model=model,
+        max_tokens=8000,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    response_text = message.content[0].text
+
+    start = response_text.find("{")
+    end = response_text.rfind("}") + 1
+    if start >= 0 and end > start:
+        try:
+            return json.loads(response_text[start:end])
+        except json.JSONDecodeError:
+            pass
+
+    return {"error": "Failed to parse MCQ response", "raw_response": response_text}
