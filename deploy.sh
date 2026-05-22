@@ -41,10 +41,11 @@ mkdir -p /tmp/lab-gen-package
 
 cp backend/app.py /tmp/lab-gen-package/
 cp backend/generator.py /tmp/lab-gen-package/
+cp backend/courses.py /tmp/lab-gen-package/
 cp backend/markdown_formatter.py /tmp/lab-gen-package/
 cp backend/lambda_handler.py /tmp/lab-gen-package/
 
-pip install --target /tmp/lab-gen-package anthropic mangum fastapi pydantic boto3 -q
+pip install --target /tmp/lab-gen-package anthropic mangum fastapi pydantic boto3 requests -q
 
 cd /tmp/lab-gen-package
 zip -r /tmp/lab-gen-deploy.zip . -q
