@@ -102,7 +102,7 @@ function ResultsDisplay({ results }) {
       <div className="results-content">
         {activeTab === 'quiz' && (
           <div>
-            <QuizMode questions={mcqs} onSubmit={() => setQuizSubmitted(true)} />
+            <QuizMode questions={mcqs} onSubmit={() => setQuizSubmitted(true)} answersRevealed={showAnswers} />
             {quizSubmitted && !showAnswers && (
               <button
                 className="show-answers-btn"

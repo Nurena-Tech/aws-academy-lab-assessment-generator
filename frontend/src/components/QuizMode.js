@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-function QuizMode({ questions, onSubmit }) {
+function QuizMode({ questions, onSubmit, answersRevealed }) {
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -32,7 +32,7 @@ function QuizMode({ questions, onSubmit }) {
           <div className="score-text">
             Score: {score} / {questions.length} ({Math.round((score / questions.length) * 100)}%)
           </div>
-          <button className="retry-btn" onClick={handleRetry}>Retry Quiz</button>
+          {!answersRevealed && <button className="retry-btn" onClick={handleRetry}>Retry Quiz</button>}
         </div>
       )}
 
