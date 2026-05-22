@@ -146,6 +146,7 @@ def generate_assessment(course_name, certification, certification_name, module_n
     model = get_model(client)
 
     cert_info = CERTIFICATION_DOMAINS.get(certification, CERTIFICATION_DOMAINS["CLF-C02"])
+    lab_time_target = "60 minutes" if certification == "SAA-C03" else "30 minutes"
     domains_text = "\n".join(f"  - {d}" for d in cert_info["domains"])
     topics_text = "\n".join(f"  - {t}" for t in (module_topics or []))
     existing_labs_text = "\n".join(f"  - {l}" for l in (existing_labs or []))
@@ -197,7 +198,7 @@ Map this objective to the most relevant exam domain(s) and explain why.
 - Verification steps (how students confirm success)
 - Clean-up instructions (terminate instances, delete resources to stay within budget)
 - Troubleshooting tips for common issues
-- Estimated completion time (target: 45-90 minutes)''' if include_lab else ""}
+- Estimated completion time (target: ''' + lab_time_target + ''')''' if include_lab else ""}
 
 {"### 3. Multiple Choice Questions (" + str(num_mcq) + " questions)" if num_mcq > 0 else "### 3. Multiple Choice Questions: DO NOT GENERATE. Set multiple_choice_questions to an empty array [] in the JSON response."}
 {'''For each question:
