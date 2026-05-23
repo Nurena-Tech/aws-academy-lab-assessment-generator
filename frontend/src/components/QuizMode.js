@@ -110,7 +110,7 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
   return (
     <div className="quiz-mode">
       {/* Timer bar */}
-      {!submitted && timerStarted && (
+      {!submitted && timerActive && (
         <div className={`quiz-timer ${timeLeft <= 30 ? 'timer-warning' : ''}`}>
           <span className="timer-icon">&#9201;</span>
           <span className="timer-text">{formatTime(timeLeft)}</span>
