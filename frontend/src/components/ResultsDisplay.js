@@ -101,7 +101,13 @@ function ResultsDisplay({ results }) {
 
       <div className="results-content">
         <div style={{ display: activeTab === 'quiz' ? 'block' : 'none' }}>
-          <QuizMode questions={mcqs} onSubmit={() => setQuizSubmitted(true)} answersRevealed={showAnswers} />
+          <QuizMode
+            questions={mcqs}
+            onSubmit={() => setQuizSubmitted(true)}
+            answersRevealed={showAnswers}
+            moduleName={results.json_output?.learning_objective || lab?.title || 'Quiz'}
+            certification={results.json_output?.certification}
+          />
           {quizSubmitted && !showAnswers && (
             <button
               className="show-answers-btn"
