@@ -8,11 +8,13 @@ function App() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [moduleName, setModuleName] = useState('');
 
   const handleGenerate = async (formData) => {
     setLoading(true);
     setError(null);
     setResults(null);
+    setModuleName(formData.module_name || '');
 
     try {
       // Start generation job
@@ -96,7 +98,7 @@ function App() {
           </div>
         )}
 
-        {results && <ResultsDisplay results={results} />}
+        {results && <ResultsDisplay results={results} moduleName={moduleName} />}
       </main>
 
       <footer className="app-footer">

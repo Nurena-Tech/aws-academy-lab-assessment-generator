@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import QuizMode from './QuizMode';
 import { exportToWord } from '../utils/wordExport';
 
-function ResultsDisplay({ results }) {
+function ResultsDisplay({ results, moduleName }) {
   const mcqs = results.json_output?.multiple_choice_questions || [];
   const lab = results.json_output?.lab_instructions;
   const rubric = results.json_output?.rubric;
@@ -17,7 +17,7 @@ function ResultsDisplay({ results }) {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [editedLab, setEditedLab] = useState(null);
 
-  const moduleName = results.json_output?.learning_objective || lab?.title || results.json_output?.certification || 'Quiz';
+  const quizModuleName = moduleName || results.json_output?.certification || 'Quiz';
 
   return (
     <div className="results">
@@ -59,7 +59,7 @@ function ResultsDisplay({ results }) {
             questions={mcqs}
             onSubmit={() => setQuizSubmitted(true)}
             answersRevealed={showAnswers}
-            moduleName={moduleName}
+            moduleName={quizModuleName}
             certification={results.json_output?.certification}
           />
           {quizSubmitted && !showAnswers && (
