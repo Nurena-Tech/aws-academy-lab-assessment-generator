@@ -80,6 +80,7 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
     const finalScore = questions.reduce((acc, q, i) => acc + (answers[i] === q.correct_answer ? 1 : 0), 0);
     if (moduleName) {
       saveProgress(moduleName, finalScore, questions.length);
+      setProgressData(getProgress());
     }
   };
 
@@ -90,6 +91,8 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
     setTimerActive(false);
     setTimerStarted(false);
   };
+
+  const [progressData, setProgressData] = useState(getProgress());
 
   const score = submitted
     ? questions.reduce((acc, q, i) => acc + (answers[i] === q.correct_answer ? 1 : 0), 0)
@@ -104,8 +107,7 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const progress = getProgress();
-  const moduleHistory = moduleName ? (progress[moduleName] || []) : [];
+  const moduleHistory = moduleName ? (progressData[moduleName] || []) : [];
 
   return (
     <div className="quiz-mode">
@@ -174,7 +176,7 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
       )}
 
       {/* Progress history */}
-      {moduleHistory.length > 1 && (
+      {moduleHistory.length >= 1 && (
         <div className="progress-history">
           <div className="progress-header">Your Progress ({moduleName})</div>
           <div className="progress-chart">
