@@ -410,10 +410,18 @@ body {
 }
 
 /* Lab Formatted View */
-.lab-edit-toggle {
+.lab-toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+
+.lab-download-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .edit-btn {

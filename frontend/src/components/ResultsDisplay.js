@@ -13,65 +13,16 @@ function ResultsDisplay({ results }) {
 
   const defaultTab = hasMcqs ? 'quiz' : hasLab ? 'lab' : 'json';
   const [activeTab, setActiveTab] = useState(defaultTab);
-  const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [editedLab, setEditedLab] = useState(null);
 
-  const handleCopy = (content) => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownload = (content, filename, type) => {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const handleDownloadWord = () => {
-    const output = { ...results.json_output };
-    if (editedLab) {
-      output.lab_instructions = editedLab;
-    }
-    exportToWord(output);
-  };
-
-  const getActiveContent = () => {
-    if (activeTab === 'quiz' || activeTab === 'mcqs') return results.markdown_output;
-    if (activeTab === 'lab') return formatLabMarkdown(lab, rubric);
-    return JSON.stringify(results.json_output, null, 2);
-  };
+  const moduleName = results.json_output?.learning_objective || lab?.title || results.json_output?.certification || 'Quiz';
 
   return (
     <div className="results">
       <div className="results-header">
         <h2>Generated Assessment</h2>
-        <div className="results-actions">
-          <button
-            className="action-btn"
-            onClick={() => handleCopy(getActiveContent())}
-          >
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-          <button
-            className="action-btn"
-            onClick={() => handleDownloadWord()}
-          >
-            Download Word
-          </button>
-          <button
-            className="action-btn"
-            onClick={() => handleDownload(results.markdown_output, 'assessment.md', 'text/markdown')}
-          >
-            Download MD
-          </button>
-        </div>
       </div>
 
       <div className="tabs">
@@ -99,21 +50,16 @@ function ResultsDisplay({ results }) {
             Lab Instructions
           </button>
         )}
-        <button
-          className={`tab ${activeTab === 'json' ? 'active' : ''}`}
-          onClick={() => setActiveTab('json')}
-        >
-          JSON Output
-        </button>
       </div>
 
       <div className="results-content">
+        {/* Quiz - always mounted to preserve state */}
         <div style={{ display: activeTab === 'quiz' ? 'block' : 'none' }}>
           <QuizMode
             questions={mcqs}
             onSubmit={() => setQuizSubmitted(true)}
             answersRevealed={showAnswers}
-            moduleName={results.json_output?.learning_objective || lab?.title || 'Quiz'}
+            moduleName={moduleName}
             certification={results.json_output?.certification}
           />
           {quizSubmitted && !showAnswers && (
@@ -125,21 +71,22 @@ function ResultsDisplay({ results }) {
             </button>
           )}
         </div>
+
+        {/* Answer Key - always mounted to preserve state */}
         <div style={{ display: activeTab === 'mcqs' ? 'block' : 'none' }}>
           <div className="markdown-view">
             <McqsFormattedView questions={mcqs} />
           </div>
         </div>
-        {activeTab === 'lab' && (
-          <div className="markdown-view">
-            <LabFormattedView lab={lab} rubric={rubric} onLabChange={setEditedLab} />
-          </div>
-        )}
-        {activeTab === 'json' && (
-          <pre className="json-view">
-            {JSON.stringify(results.json_output, null, 2)}
-          </pre>
-        )}
+
+        {/* Lab - always mounted to preserve edits */}
+        <div style={{ display: activeTab === 'lab' ? 'block' : 'none' }}>
+          {hasLab && (
+            <div className="markdown-view">
+              <LabFormattedView lab={lab} rubric={rubric} onLabChange={setEditedLab} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -185,6 +132,7 @@ function McqsFormattedView({ questions }) {
 function LabFormattedView({ lab, rubric, onLabChange }) {
   const [editing, setEditing] = useState(false);
   const [labData, setLabData] = useState(lab);
+  const [copied, setCopied] = useState(false);
 
   if (!labData) return null;
 
@@ -211,12 +159,46 @@ function LabFormattedView({ lab, rubric, onLabChange }) {
     });
   };
 
+  const handleDownloadWord = () => {
+    const output = { lab_instructions: labData, rubric };
+    exportToWord(output);
+  };
+
+  const handleCopyMd = () => {
+    const md = formatLabMarkdown(labData, rubric);
+    navigator.clipboard.writeText(md);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadMd = () => {
+    const md = formatLabMarkdown(labData, rubric);
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${labData.title || 'lab'}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <div className="lab-edit-toggle">
+      <div className="lab-toolbar">
         <button className={`edit-btn ${editing ? 'active' : ''}`} onClick={() => setEditing(!editing)}>
           {editing ? 'Done Editing' : 'Edit Lab'}
         </button>
+        <div className="lab-download-actions">
+          <button className="action-btn" onClick={handleCopyMd}>
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+          <button className="action-btn" onClick={handleDownloadWord}>
+            Download Word
+          </button>
+          <button className="action-btn" onClick={handleDownloadMd}>
+            Download MD
+          </button>
+        </div>
       </div>
 
       {editing ? (
