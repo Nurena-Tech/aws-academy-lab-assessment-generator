@@ -196,6 +196,27 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* Partial results banner */
+.partial-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  color: #856404;
+}
+
+.spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 3px;
+  margin: 0;
+}
+
 /* Error */
 .error-message {
   background: #fee;
@@ -389,6 +410,60 @@ body {
 }
 
 /* Lab Formatted View */
+.lab-edit-toggle {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+}
+
+.edit-btn {
+  padding: 0.5rem 1.25rem;
+  background: #f0f4f8;
+  border: 2px solid #6c757d;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.edit-btn:hover { background: #e2e8f0; }
+.edit-btn.active { background: #ff9900; border-color: #ff9900; color: white; }
+
+.edit-title {
+  width: 100%;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 0.5rem;
+  border: 2px solid #ff9900;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.edit-textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #ff9900;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: vertical;
+  margin-bottom: 0.5rem;
+}
+
+.edit-textarea.small { font-size: 0.9rem; }
+
+.edit-step-title {
+  width: 100%;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid #ff9900;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
 .lab-step {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;

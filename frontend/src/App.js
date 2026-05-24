@@ -45,7 +45,7 @@ function App() {
   };
 
   const pollForResults = async (jobId) => {
-    const maxAttempts = 60; // 60 * 5s = 5 minutes max
+    const maxAttempts = 60;
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise(resolve => setTimeout(resolve, 5000));
       try {
@@ -55,8 +55,11 @@ function App() {
         if (data.status === 'complete' || data.status === 'error') {
           return data;
         }
+        if (data.status === 'partial') {
+          setResults(data);
+          setLoading(false);
+        }
       } catch (e) {
-        // Network error during polling — keep trying
         continue;
       }
     }
@@ -83,6 +86,13 @@ function App() {
           <div className="loading">
             <div className="spinner"></div>
             <p>Generating assessment materials... This may take 30-60 seconds.</p>
+          </div>
+        )}
+
+        {results && results.status === 'partial' && (
+          <div className="partial-banner">
+            <div className="spinner small"></div>
+            <span>MCQs ready! Still generating lab instructions...</span>
           </div>
         )}
 

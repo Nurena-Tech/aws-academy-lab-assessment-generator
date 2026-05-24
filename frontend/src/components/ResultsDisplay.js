@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import QuizMode from './QuizMode';
+import { exportToWord } from '../utils/wordExport';
 
 function ResultsDisplay({ results }) {
   const mcqs = results.json_output?.multiple_choice_questions || [];
@@ -32,6 +33,10 @@ function ResultsDisplay({ results }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadWord = () => {
+    exportToWord(results.json_output);
+  };
+
   const getActiveContent = () => {
     if (activeTab === 'quiz' || activeTab === 'mcqs') return results.markdown_output;
     if (activeTab === 'lab') return formatLabMarkdown(lab, rubric);
@@ -51,17 +56,15 @@ function ResultsDisplay({ results }) {
           </button>
           <button
             className="action-btn"
-            onClick={() => handleDownload(results.markdown_output, 'assessment.md', 'text/markdown')}
+            onClick={() => handleDownloadWord()}
           >
-            Download MD
+            Download Word
           </button>
           <button
             className="action-btn"
-            onClick={() => handleDownload(
-              JSON.stringify(results.json_output, null, 2), 'assessment.json', 'application/json'
-            )}
+            onClick={() => handleDownload(results.markdown_output, 'assessment.md', 'text/markdown')}
           >
-            Download JSON
+            Download MD
           </button>
         </div>
       </div>
@@ -175,69 +178,119 @@ function McqsFormattedView({ questions }) {
 }
 
 function LabFormattedView({ lab, rubric }) {
-  if (!lab) return null;
+  const [editing, setEditing] = useState(false);
+  const [labData, setLabData] = useState(lab);
+
+  if (!labData) return null;
+
+  const updateField = (path, value) => {
+    setLabData(prev => {
+      const updated = JSON.parse(JSON.stringify(prev));
+      const keys = path.split('.');
+      let obj = updated;
+      for (let i = 0; i < keys.length - 1; i++) {
+        obj = obj[keys[i]];
+      }
+      obj[keys[keys.length - 1]] = value;
+      return updated;
+    });
+  };
+
+  const updateStep = (index, field, value) => {
+    setLabData(prev => {
+      const updated = JSON.parse(JSON.stringify(prev));
+      updated.steps[index][field] = value;
+      return updated;
+    });
+  };
 
   return (
     <div>
-      <h2>{lab.title}</h2>
-      <p><strong>Estimated Time:</strong> {lab.estimated_time}</p>
-      <p><strong>Environment:</strong> {lab.environment}</p>
-      <p><strong>Region:</strong> {lab.region}</p>
-      <p><strong>IAM Role:</strong> {lab.iam_role}</p>
+      <div className="lab-edit-toggle">
+        <button className={`edit-btn ${editing ? 'active' : ''}`} onClick={() => setEditing(!editing)}>
+          {editing ? 'Done Editing' : 'Edit Lab'}
+        </button>
+      </div>
+
+      {editing ? (
+        <input className="edit-title" value={labData.title} onChange={e => updateField('title', e.target.value)} />
+      ) : (
+        <h2>{labData.title}</h2>
+      )}
+      <p><strong>Estimated Time:</strong> {labData.estimated_time}</p>
+      <p><strong>Environment:</strong> {labData.environment}</p>
+      <p><strong>Region:</strong> {labData.region}</p>
+      <p><strong>IAM Role:</strong> {labData.iam_role}</p>
 
       <h3>Scenario</h3>
-      <p>{lab.scenario}</p>
+      {editing ? (
+        <textarea className="edit-textarea" value={labData.scenario} onChange={e => updateField('scenario', e.target.value)} rows={4} />
+      ) : (
+        <p>{labData.scenario}</p>
+      )}
 
-      {lab.prerequisites && lab.prerequisites.length > 0 && (
+      {labData.prerequisites && labData.prerequisites.length > 0 && (
         <>
           <h3>Prerequisites</h3>
           <ul>
-            {lab.prerequisites.map((p, i) => <li key={i}>{p}</li>)}
+            {labData.prerequisites.map((p, i) => <li key={i}>{p}</li>)}
           </ul>
         </>
       )}
 
-      {lab.steps && lab.steps.length > 0 && (
+      {labData.steps && labData.steps.length > 0 && (
         <>
           <h3>Instructions</h3>
-          {lab.steps.map((step, i) => (
+          {labData.steps.map((step, i) => (
             <div key={i} className="lab-step">
-              <h4>Step {step.step_number}: {step.title}</h4>
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {step.instructions}
-              </ReactMarkdown>
+              {editing ? (
+                <input className="edit-step-title" value={step.title} onChange={e => updateStep(i, 'title', e.target.value)} />
+              ) : (
+                <h4>Step {step.step_number}: {step.title}</h4>
+              )}
+              {editing ? (
+                <textarea className="edit-textarea" value={step.instructions} onChange={e => updateStep(i, 'instructions', e.target.value)} rows={5} />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {step.instructions}
+                </ReactMarkdown>
+              )}
               {step.expected_outcome && (
-                <blockquote>
-                  <strong>Expected Outcome:</strong> {step.expected_outcome}
-                </blockquote>
+                editing ? (
+                  <textarea className="edit-textarea small" value={step.expected_outcome} onChange={e => updateStep(i, 'expected_outcome', e.target.value)} rows={2} />
+                ) : (
+                  <blockquote>
+                    <strong>Expected Outcome:</strong> {step.expected_outcome}
+                  </blockquote>
+                )
               )}
             </div>
           ))}
         </>
       )}
 
-      {lab.verification && lab.verification.length > 0 && (
+      {labData.verification && labData.verification.length > 0 && (
         <>
           <h3>Verification</h3>
           <ul>
-            {lab.verification.map((v, i) => <li key={i}>{v}</li>)}
+            {labData.verification.map((v, i) => <li key={i}>{v}</li>)}
           </ul>
         </>
       )}
 
-      {lab.cleanup && lab.cleanup.length > 0 && (
+      {labData.cleanup && labData.cleanup.length > 0 && (
         <>
           <h3>Clean-Up</h3>
           <ol>
-            {lab.cleanup.map((c, i) => <li key={i}>{c}</li>)}
+            {labData.cleanup.map((c, i) => <li key={i}>{c}</li>)}
           </ol>
         </>
       )}
 
-      {lab.troubleshooting && lab.troubleshooting.length > 0 && (
+      {labData.troubleshooting && labData.troubleshooting.length > 0 && (
         <>
           <h3>Troubleshooting</h3>
-          {lab.troubleshooting.map((t, i) => (
+          {labData.troubleshooting.map((t, i) => (
             <div key={i} className="troubleshooting-item">
               <strong>{t.issue}:</strong> {t.solution}
             </div>

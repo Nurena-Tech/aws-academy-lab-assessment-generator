@@ -59,8 +59,28 @@ def handle_worker(job):
                     num_mcq=num_mcq,
                 )
 
-                lab_result = lab_future.result()
+                # MCQs finish faster — save partial result so frontend can show them early
                 mcq_result = mcq_future.result()
+                if "error" not in mcq_result:
+                    partial = {
+                        "status": "partial",
+                        "phase": "MCQs ready, generating lab...",
+                        "json_output": {
+                            "learning_objective": job.get("learning_objective", ""),
+                            "certification": job["certification"],
+                            "multiple_choice_questions": mcq_result.get("multiple_choice_questions", []),
+                            "lab_instructions": None,
+                            "rubric": None,
+                        },
+                    }
+                    s3.put_object(
+                        Bucket=RESULTS_BUCKET,
+                        Key=f"jobs/{job_id}.json",
+                        Body=json.dumps(partial, default=str),
+                        ContentType="application/json",
+                    )
+
+                lab_result = lab_future.result()
 
             if "error" in lab_result:
                 result = lab_result
