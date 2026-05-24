@@ -39,6 +39,21 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
   const [timerActive, setTimerActive] = useState(false);
   const [timerStarted, setTimerStarted] = useState(false);
   const timerRef = useRef(null);
+  const [questionsKey, setQuestionsKey] = useState(JSON.stringify(questions));
+
+  // Reset quiz state when new questions are generated
+  useEffect(() => {
+    const newKey = JSON.stringify(questions);
+    if (newKey !== questionsKey) {
+      setQuestionsKey(newKey);
+      setAnswers({});
+      setSubmitted(false);
+      setTimerActive(false);
+      setTimerStarted(false);
+      setTimeLeft(questions.length * secondsPerQuestion);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [questions]);
 
   useEffect(() => {
     if (timerActive && timeLeft > 0) {
@@ -93,6 +108,11 @@ function QuizMode({ questions, onSubmit, answersRevealed, moduleName, certificat
   };
 
   const [progressData, setProgressData] = useState(getProgress());
+
+  // Re-read progress when module changes
+  useEffect(() => {
+    setProgressData(getProgress());
+  }, [moduleName]);
 
   const score = submitted
     ? questions.reduce((acc, q, i) => acc + (answers[i] === q.correct_answer ? 1 : 0), 0)
