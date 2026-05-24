@@ -38,10 +38,16 @@ Creating these materials manually requires deep knowledge of Learner Lab restric
 - **Dynamic button** — Generate button text reflects selected options (Lab, MCQs, Rubric)
 - **Certification-calibrated difficulty** — Cloud Practitioner MCQs test concepts/definitions; Solutions Architect MCQs test architectural design and trade-offs
 - **Course-specific time limits** — Cloud Foundations labs: 30 min max; Cloud Architecting labs: 60 min max
+- **Timed exam simulation** — Quiz timer based on actual AWS exam pacing (CLF-C02: 83 sec/question; SAA-C03: 120 sec/question) with option for untimed mode
+- **Adaptive difficulty** — Suggests harder questions for perfect scores, review questions for low scores
+- **Progress tracking** — Saves quiz scores per module in browser localStorage; shows historical performance chart across attempts
 - **Parallel generation** — MCQs and Lab are generated simultaneously for faster results
+- **Streaming partial results** — MCQs appear immediately while lab continues generating in the background
 - **Fast MCQ generation** — MCQs use Claude Haiku for ~1 minute response time
 - **Answer Key gating** — Answer Key is hidden until the learner completes the practice quiz
-- **Separate result views** — Dedicated tabs for Practice Quiz, Answer Key, Lab Instructions, and JSON output
+- **Inline lab editing** — Edit lab title, scenario, and step instructions directly in the browser before downloading
+- **Word document export** — Download generated labs as formatted .docx files (edits included)
+- **Separate result views** — Dedicated tabs for Practice Quiz, Answer Key, and Lab Instructions (with per-tab download buttons)
 
 ---
 
@@ -89,7 +95,7 @@ All generated labs automatically respect these restrictions:
 Since content generation takes 30-90 seconds (exceeding API Gateway's 30s timeout):
 1. `POST /api/generate` → stores "processing" status in S3, invokes a worker Lambda asynchronously, returns job ID immediately
 2. Worker Lambda calls Bedrock (Lab + MCQs in parallel threads when both are requested), writes results to S3
-3. Frontend polls `GET /api/results/{job_id}` every 5 seconds until complete
+3. Frontend polls `GET /api/results/{job_id}` every 2.5 seconds; displays partial results (MCQs) as soon as available while lab continues generating
 
 ---
 
@@ -180,7 +186,8 @@ Modules are fetched live from Canvas — no additional configuration needed.
 - Export to Canvas-compatible formats (QTI for quizzes)
 - Lab difficulty levels (introductory, intermediate, advanced)
 - Batch generation for entire courses
-- History of generated content with versioning
+- Cloud-based progress tracking with educator dashboards (DynamoDB + authentication)
+- Question bank to avoid duplicate generation and enable mix-and-match assessments
 - Collaborative review workflow for generated materials
 - Canvas LMS course creation with AI-generated video content
 
