@@ -16,6 +16,7 @@ function ResultsDisplay({ results }) {
   const [copied, setCopied] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [quizSubmitted, setQuizSubmitted] = useState(false);
+  const [editedLab, setEditedLab] = useState(null);
 
   const handleCopy = (content) => {
     navigator.clipboard.writeText(content);
@@ -34,7 +35,11 @@ function ResultsDisplay({ results }) {
   };
 
   const handleDownloadWord = () => {
-    exportToWord(results.json_output);
+    const output = { ...results.json_output };
+    if (editedLab) {
+      output.lab_instructions = editedLab;
+    }
+    exportToWord(output);
   };
 
   const getActiveContent = () => {
@@ -127,7 +132,7 @@ function ResultsDisplay({ results }) {
         </div>
         {activeTab === 'lab' && (
           <div className="markdown-view">
-            <LabFormattedView lab={lab} rubric={rubric} />
+            <LabFormattedView lab={lab} rubric={rubric} onLabChange={setEditedLab} />
           </div>
         )}
         {activeTab === 'json' && (
@@ -177,7 +182,7 @@ function McqsFormattedView({ questions }) {
   );
 }
 
-function LabFormattedView({ lab, rubric }) {
+function LabFormattedView({ lab, rubric, onLabChange }) {
   const [editing, setEditing] = useState(false);
   const [labData, setLabData] = useState(lab);
 
@@ -192,6 +197,7 @@ function LabFormattedView({ lab, rubric }) {
         obj = obj[keys[i]];
       }
       obj[keys[keys.length - 1]] = value;
+      if (onLabChange) onLabChange(updated);
       return updated;
     });
   };
@@ -200,6 +206,7 @@ function LabFormattedView({ lab, rubric }) {
     setLabData(prev => {
       const updated = JSON.parse(JSON.stringify(prev));
       updated.steps[index][field] = value;
+      if (onLabChange) onLabChange(updated);
       return updated;
     });
   };

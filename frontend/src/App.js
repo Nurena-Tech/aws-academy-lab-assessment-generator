@@ -45,9 +45,9 @@ function App() {
   };
 
   const pollForResults = async (jobId) => {
-    const maxAttempts = 60;
+    const maxAttempts = 120;
     for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 2500));
       try {
         const response = await fetch(`${API_URL}/api/results/${jobId}`);
         if (!response.ok) continue;
