@@ -4,9 +4,10 @@ import os
 import json
 import uuid
 import boto3
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List
 
@@ -14,18 +15,35 @@ from generator import generate_assessment, CERTIFICATION_DOMAINS
 from courses import get_courses, get_modules, COURSES
 from markdown_formatter import format_as_markdown
 
+CLOUDFRONT_ORIGIN_SECRET = os.environ.get("CLOUDFRONT_ORIGIN_SECRET", "")
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "http://localhost:3000")
+
+
+class OriginVerifyMiddleware(BaseHTTPMiddleware):
+    """Block direct API access — only allow requests routed through CloudFront."""
+
+    async def dispatch(self, request: Request, call_next):
+        if not CLOUDFRONT_ORIGIN_SECRET:
+            return await call_next(request)
+        origin_header = request.headers.get("x-origin-verify", "")
+        if origin_header != CLOUDFRONT_ORIGIN_SECRET:
+            return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+        return await call_next(request)
+
+
 app = FastAPI(
     title="AWS Academy Lab & Assessment Generator",
     description="Generate scenario-based labs, quizzes, and rubrics for AWS Academy courses",
     version="2.0.0",
 )
 
+app.add_middleware(OriginVerifyMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[ALLOWED_ORIGIN],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type"],
 )
 
 RESULTS_BUCKET = os.environ.get("RESULTS_BUCKET", "lab-assessment-generator-results-556411750482")

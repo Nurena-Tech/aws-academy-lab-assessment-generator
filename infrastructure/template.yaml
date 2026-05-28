@@ -6,6 +6,11 @@ Parameters:
     Type: String
     Default: prod
     AllowedValues: [dev, prod]
+  CloudFrontOriginSecret:
+    Type: String
+    NoEcho: true
+    Description: Shared secret between CloudFront and API Gateway to block direct API access
+    MinLength: 16
 
 Resources:
   # S3 Bucket for React frontend
@@ -50,6 +55,9 @@ Resources:
             CustomOriginConfig:
               HTTPSPort: 443
               OriginProtocolPolicy: https-only
+            OriginCustomHeaders:
+              - HeaderName: X-Origin-Verify
+                HeaderValue: !Ref CloudFrontOriginSecret
         DefaultCacheBehavior:
           TargetOriginId: S3Origin
           ViewerProtocolPolicy: redirect-to-https
@@ -109,6 +117,14 @@ Resources:
                 Action:
                   - bedrock:InvokeModel
                 Resource: "*"
+        - PolicyName: ssm-read-params
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/lab-assessment-generator/*"
 
   # Lambda Function
   GeneratorFunction:
@@ -123,6 +139,7 @@ Resources:
       Environment:
         Variables:
           AWS_REGION_NAME: !Ref AWS::Region
+          CLOUDFRONT_ORIGIN_SECRET: !Ref CloudFrontOriginSecret
       Code:
         ZipFile: |
           def handler(event, context):
@@ -134,10 +151,6 @@ Resources:
     Properties:
       Name: lab-assessment-generator-api
       ProtocolType: HTTP
-      CorsConfiguration:
-        AllowOrigins: ["*"]
-        AllowMethods: ["GET", "POST", "OPTIONS"]
-        AllowHeaders: ["Content-Type"]
 
   ApiIntegration:
     Type: AWS::ApiGatewayV2::Integration
@@ -160,6 +173,9 @@ Resources:
       ApiId: !Ref ApiGateway
       StageName: "$default"
       AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
 
   ApiLambdaPermission:
     Type: AWS::Lambda::Permission

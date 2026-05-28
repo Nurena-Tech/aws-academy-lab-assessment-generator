@@ -1,6 +1,7 @@
 """AWS Academy course configuration and Canvas integration."""
 
 import os
+import boto3
 import requests
 
 # Course → Certification mapping
@@ -20,7 +21,34 @@ COURSES = {
 }
 
 CANVAS_API_URL = os.environ.get("CANVAS_API_URL", "https://awsacademy.instructure.com")
-CANVAS_API_TOKEN = os.environ.get("CANVAS_API_TOKEN", "")
+
+_canvas_token_cache = None
+
+
+def _get_canvas_token():
+    """Retrieve Canvas API token from SSM Parameter Store (or env var for local dev)."""
+    global _canvas_token_cache
+    if _canvas_token_cache is not None:
+        return _canvas_token_cache
+
+    token = os.environ.get("CANVAS_API_TOKEN", "")
+    if token:
+        _canvas_token_cache = token
+        return token
+
+    if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+        try:
+            ssm = boto3.client("ssm", region_name=os.environ.get("AWS_REGION_NAME", "us-west-2"))
+            resp = ssm.get_parameter(
+                Name="/lab-assessment-generator/canvas-api-token",
+                WithDecryption=True,
+            )
+            _canvas_token_cache = resp["Parameter"]["Value"]
+            return _canvas_token_cache
+        except Exception:
+            return ""
+
+    return ""
 
 
 def get_courses():
@@ -33,11 +61,12 @@ def get_courses():
 
 def get_modules(course_id):
     """Fetch modules from Canvas for a given course."""
-    if not CANVAS_API_TOKEN:
+    token = _get_canvas_token()
+    if not token:
         return []
 
     session = requests.Session()
-    session.headers.update({"Authorization": f"Bearer {CANVAS_API_TOKEN}"})
+    session.headers.update({"Authorization": f"Bearer {token}"})
 
     url = f"{CANVAS_API_URL}/api/v1/courses/{course_id}/modules"
     params = {"per_page": 100}
