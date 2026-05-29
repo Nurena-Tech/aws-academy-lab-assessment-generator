@@ -83,12 +83,21 @@ All generated labs automatically respect these restrictions:
 | Service | Purpose |
 |---------|---------|
 | **S3** | Hosts React frontend + stores async job results |
-| **CloudFront** | CDN for the web app |
-| **API Gateway (HTTP)** | Routes API requests to Lambda |
+| **CloudFront** | CDN for the web app with origin secret header verification |
+| **API Gateway (HTTP)** | Routes API requests to Lambda (throttled: 5 req/s, burst 10) |
 | **Lambda** | Runs FastAPI backend + async worker for AI generation |
 | **Amazon Bedrock** | Claude Sonnet 4.6 for lab generation, Claude Haiku 4.5 for fast MCQ generation |
+| **SSM Parameter Store** | Stores Canvas API token as SecureString (encrypted at rest) |
 | **IAM** | Least-privilege role for Lambda |
 | **CloudFormation** | Infrastructure as code |
+
+### Security
+
+- **Origin verification** — API Gateway rejects direct requests; only CloudFront-routed traffic is accepted (via `X-Origin-Verify` secret header)
+- **CORS locked** — Only the CloudFront domain is allowed (not `*`)
+- **Canvas token in SSM** — Canvas API token stored as SSM Parameter Store SecureString (`/lab-assessment-generator/canvas-api-token`), encrypted at rest with KMS; Lambda retrieves it at runtime with `WithDecryption=True`
+- **API throttling** — API Gateway rate limited to 5 requests/second with burst of 10 to prevent abuse
+- **No credentials in code** — Local dev uses `.env` file (gitignored); production uses SSM
 
 ### Async Pattern
 
