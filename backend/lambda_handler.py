@@ -85,8 +85,24 @@ def handle_worker(job):
             if "error" in lab_result:
                 result = lab_result
             elif "error" in mcq_result:
-                result = lab_result
-                result["multiple_choice_questions"] = []
+                # Retry MCQ once before giving up
+                print(f"MCQ failed first attempt: {mcq_result.get('error')}. Retrying...")
+                mcq_result = generate_mcqs_only(
+                    course_name=job["course_name"],
+                    certification=job["certification"],
+                    certification_name=job["certification_name"],
+                    module_name=job["module_name"],
+                    module_topics=job.get("module_topics", []),
+                    learning_objective=job.get("learning_objective", ""),
+                    num_mcq=num_mcq,
+                )
+                if "error" in mcq_result:
+                    print(f"MCQ failed retry: {mcq_result.get('error')}. Raw: {mcq_result.get('raw_response', '')[:500]}")
+                    result = lab_result
+                    result["multiple_choice_questions"] = []
+                else:
+                    result = lab_result
+                    result["multiple_choice_questions"] = mcq_result.get("multiple_choice_questions", [])
             else:
                 result = lab_result
                 result["multiple_choice_questions"] = mcq_result.get("multiple_choice_questions", [])
@@ -127,7 +143,7 @@ def handle_worker(job):
             )
 
         if "error" in result:
-            output = {"status": "error", "error": result["error"]}
+            output = {"status": "error", "error": result["error"], "raw_response": result.get("raw_response", "")}
         else:
             markdown = format_as_markdown(result)
             output = {

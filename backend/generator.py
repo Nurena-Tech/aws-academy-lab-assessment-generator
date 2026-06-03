@@ -2,10 +2,41 @@
 
 import os
 import json
+import re
 import anthropic
 
 BEDROCK_MODEL = "us.anthropic.claude-sonnet-4-6"
 BEDROCK_MODEL_FAST = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+
+
+def _parse_json_response(response_text, error_msg="Failed to parse response"):
+    """Extract JSON from Claude's response using multiple strategies."""
+    # Strategy 1: Find JSON in markdown code block (greedy match for nested braces)
+    code_block = re.search(r'```(?:json)?\s*(\{.+\})\s*```', response_text, re.DOTALL)
+    if code_block:
+        try:
+            return json.loads(code_block.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Strategy 2: Find outermost braces (first { to last })
+    start = response_text.find("{")
+    end = response_text.rfind("}") + 1
+    if start >= 0 and end > start:
+        try:
+            return json.loads(response_text[start:end])
+        except json.JSONDecodeError:
+            pass
+
+        # Strategy 3: Clean trailing commas and retry
+        cleaned = re.sub(r',\s*}', '}', response_text[start:end])
+        cleaned = re.sub(r',\s*]', ']', cleaned)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+    return {"error": error_msg, "raw_response": response_text[:2000]}
 
 SYSTEM_PROMPT = """You are an expert AWS Academy instructional designer and assessment author. You create high-quality, scenario-based lab instructions, quiz questions, rubrics, and assessment materials aligned to AWS certification exam domains.
 
@@ -306,21 +337,11 @@ IMPORTANT REMINDERS:
         model=model,
         max_tokens=16000,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": prompt + "\n\nIMPORTANT: Respond with ONLY the raw JSON object. Do NOT wrap it in markdown code blocks. Do NOT include any text before or after the JSON. Start your response with { and end with }."}],
     )
 
     response_text = message.content[0].text
-
-    # Parse JSON from response
-    start = response_text.find("{")
-    end = response_text.rfind("}") + 1
-    if start >= 0 and end > start:
-        try:
-            return json.loads(response_text[start:end])
-        except json.JSONDecodeError:
-            pass
-
-    return {"error": "Failed to parse response", "raw_response": response_text}
+    return _parse_json_response(response_text, "Failed to parse response")
 
 
 def generate_mcqs_only(course_name, certification, certification_name, module_name,
@@ -403,17 +424,8 @@ Respond ONLY with valid JSON:
         model=model,
         max_tokens=8000,
         system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": prompt + "\n\nIMPORTANT: Respond with ONLY the raw JSON object. Do NOT wrap it in markdown code blocks. Do NOT include any text before or after the JSON. Start your response with { and end with }."}],
     )
 
     response_text = message.content[0].text
-
-    start = response_text.find("{")
-    end = response_text.rfind("}") + 1
-    if start >= 0 and end > start:
-        try:
-            return json.loads(response_text[start:end])
-        except json.JSONDecodeError:
-            pass
-
-    return {"error": "Failed to parse MCQ response", "raw_response": response_text}
+    return _parse_json_response(response_text, "Failed to parse MCQ response")
