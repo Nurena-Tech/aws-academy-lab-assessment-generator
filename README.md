@@ -1,6 +1,8 @@
-# AWS Academy Lab & Assessment Generator
+# AWS Academy LabForge
 
-> An AI-powered web application that generates complementary hands-on labs, certification exam prep questions, and grading rubrics for AWS Academy course modules — designed for educators who need additional practice materials that align with course content and AWS certifications.
+> Lab and Assessment Generator for AWS Certification Prep
+
+An AI-powered web application that generates complementary hands-on labs, certification exam prep questions, and grading rubrics for AWS Academy course modules — designed for educators who need additional practice materials that align with course content and AWS certifications.
 
 ---
 
@@ -76,7 +78,7 @@ All generated labs automatically respect these restrictions:
 
 ## Architecture
 
-![AWS Academy Lab & Assessment Generator Architecture](AWS%20Academy%20Lab%20%26%20Assessment%20Generator%20Architecture.png)
+![AWS Academy LabForge Architecture](AWS%20Academy%20Lab%20%26%20Assessment%20Generator%20Architecture.png)
 
 ### AWS Services Used
 
@@ -101,7 +103,7 @@ All generated labs automatically respect these restrictions:
 
 ### Async Pattern
 
-Since content generation takes 30-90 seconds (exceeding API Gateway's 30s timeout):
+Since content generation takes up to 2 minutes (exceeding API Gateway's 30s timeout):
 1. `POST /api/generate` → stores "processing" status in S3, invokes a worker Lambda asynchronously, returns job ID immediately
 2. Worker Lambda calls Bedrock (Lab + MCQs in parallel threads when both are requested), writes results to S3
 3. Frontend polls `GET /api/results/{job_id}` every 2.5 seconds; displays partial results (MCQs) as soon as available while lab continues generating

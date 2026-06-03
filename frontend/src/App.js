@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import GeneratorForm from './components/GeneratorForm';
 import ResultsDisplay from './components/ResultsDisplay';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || '';
 
 function App() {
   const [results, setResults] = useState(null);
@@ -71,8 +71,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>AWS Academy Lab & Assessment Generator</h1>
-        <p>Generate complementary hands-on labs, exam prep questions, and rubrics from AWS Academy course modules</p>
+        <h1>AWS Academy LabForge</h1>
+        <p>Lab and Assessment Generator for AWS Certification Prep</p>
       </header>
 
       <main className="app-main">
@@ -87,7 +87,7 @@ function App() {
         {loading && (
           <div className="loading">
             <div className="spinner"></div>
-            <p>Generating assessment materials... This may take 30-60 seconds.</p>
+            <p>Generating materials... This may take up to 2 minutes.</p>
           </div>
         )}
 
