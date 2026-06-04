@@ -142,6 +142,7 @@ This deploys the full stack: CloudFormation infrastructure, Lambda code, React f
 ### Get the App URL
 
 ```bash
+export AWS_PROFILE=your-aws-profile-name
 aws cloudformation describe-stacks --stack-name lab-assessment-generator --region us-west-2 --profile $AWS_PROFILE --query 'Stacks[0].Outputs[?OutputKey==`CloudFrontURL`].OutputValue' --output text --no-cli-pager
 ```
 
