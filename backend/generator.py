@@ -11,7 +11,7 @@ BEDROCK_MODEL_FAST = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 def _parse_json_response(response_text, error_msg="Failed to parse response"):
     """Extract JSON from Claude's response using multiple strategies."""
-    # Strategy 1: Find JSON in markdown code block (greedy match for nested braces)
+    # Strategy 1: Find JSON object in markdown code block
     code_block = re.search(r'```(?:json)?\s*(\{.+\})\s*```', response_text, re.DOTALL)
     if code_block:
         try:
@@ -19,7 +19,36 @@ def _parse_json_response(response_text, error_msg="Failed to parse response"):
         except json.JSONDecodeError:
             pass
 
-    # Strategy 2: Find outermost braces (first { to last })
+    # Strategy 1b: Code block content missing outer braces — wrap and retry
+    code_block_any = re.search(r'```(?:json)?\s*(.+?)\s*```', response_text, re.DOTALL)
+    if code_block_any:
+        content = code_block_any.group(1).strip()
+        if not content.startswith("{"):
+            content = "{" + content + "}"
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            cleaned = re.sub(r',\s*}', '}', content)
+            cleaned = re.sub(r',\s*]', ']', cleaned)
+            try:
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                pass
+
+    # Strategy 2: Try wrapping if response starts with a bare key (no leading brace)
+    stripped = response_text.strip()
+    if stripped.startswith('"') and not stripped.startswith('{'):
+        try:
+            return json.loads("{" + stripped + "}")
+        except json.JSONDecodeError:
+            cleaned = re.sub(r',\s*}', '}', "{" + stripped + "}")
+            cleaned = re.sub(r',\s*]', ']', cleaned)
+            try:
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                pass
+
+    # Strategy 3: Find outermost braces (first { to last })
     start = response_text.find("{")
     end = response_text.rfind("}") + 1
     if start >= 0 and end > start:
@@ -28,7 +57,7 @@ def _parse_json_response(response_text, error_msg="Failed to parse response"):
         except json.JSONDecodeError:
             pass
 
-        # Strategy 3: Clean trailing commas and retry
+        # Strategy 3b: Clean trailing commas and retry
         cleaned = re.sub(r',\s*}', '}', response_text[start:end])
         cleaned = re.sub(r',\s*]', ']', cleaned)
         try:
