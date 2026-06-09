@@ -96,10 +96,16 @@ All generated labs automatically respect these restrictions:
 ### Security
 
 - **Origin verification** — API Gateway rejects direct requests; only CloudFront-routed traffic is accepted (via `X-Origin-Verify` secret header)
+- **Single entry point** — Lambda Function URL removed; all traffic exclusively via CloudFront → API Gateway (no direct Lambda invocation possible)
+- **TLS hardened** — Origin SSL restricted to TLSv1.2 only (SSLv3 and TLSv1 removed); HTTPS enforced for all connections
+- **WAF protection** — AWS WAF attached to CloudFront with AWSManagedRulesCommonRuleSet and AWSManagedRulesKnownBadInputsRuleSet
 - **CORS locked** — Only the CloudFront domain is allowed (not `*`)
+- **IAM least privilege** — Bedrock access scoped to specific model ARNs only; S3 access scoped to results bucket; SSM access scoped to app parameters
 - **Canvas token in SSM** — Canvas API token stored as SSM Parameter Store SecureString (`/lab-assessment-generator/canvas-api-token`), encrypted at rest with KMS; Lambda retrieves it at runtime with `WithDecryption=True`
+- **S3 hardened** — All public access blocked, server-side encryption (AES-256) enabled, versioning enabled on results bucket, SSE-C blocked
 - **API throttling** — API Gateway rate limited to 5 requests/second with burst of 10 to prevent abuse
 - **No credentials in code** — Local dev uses `.env` file (gitignored); production uses SSM
+- **Account security** — Isengard Non-Production account with Bindle ownership (AWSAcademyTechTrainersBindle); no IAM users or access keys; CloudTrail enabled
 
 ### Async Pattern
 
