@@ -41,6 +41,9 @@ function App() {
     } catch (err) {
       const msg = typeof err === 'string' ? err : (err.message || err.detail || JSON.stringify(err));
       setError(msg);
+      if (results && results.status === 'partial') {
+        setResults(prev => prev ? { ...prev, status: 'complete' } : prev);
+      }
     } finally {
       setLoading(false);
     }

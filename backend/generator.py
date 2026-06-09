@@ -67,6 +67,24 @@ def _parse_json_response(response_text, error_msg="Failed to parse response"):
 
     return {"error": error_msg, "raw_response": response_text[:2000]}
 
+
+def _repair_truncated_json(text):
+    """Attempt to repair JSON truncated by max_tokens by closing open brackets/braces."""
+    text = text.rstrip()
+    # Remove trailing incomplete string (unmatched quote)
+    if text.count('"') % 2 != 0:
+        last_quote = text.rfind('"')
+        text = text[:last_quote] + '"'
+    # Remove trailing comma
+    text = re.sub(r',\s*$', '', text)
+    # Count open vs close braces/brackets
+    open_braces = text.count('{') - text.count('}')
+    open_brackets = text.count('[') - text.count(']')
+    # Close arrays first, then objects
+    text += ']' * max(0, open_brackets)
+    text += '}' * max(0, open_braces)
+    return text
+
 SYSTEM_PROMPT = """You are an expert AWS Academy instructional designer and assessment author. You create high-quality, scenario-based lab instructions, quiz questions, rubrics, and assessment materials aligned to AWS certification exam domains.
 
 You understand:
@@ -78,7 +96,32 @@ You understand:
 - Rubric design for hands-on assessments (criteria, performance levels, point allocations)
 
 CRITICAL — AWS ACADEMY LEARNER LAB CONSTRAINTS:
-All labs run in the AWS Academy Learner Lab, a restricted sandbox environment. You MUST design labs that work within these restrictions:
+All labs run in the AWS Academy Learner Lab, a restricted sandbox environment. You MUST design labs that work ONLY with the services and restrictions listed below. If a service is NOT in the AVAILABLE SERVICES list, do NOT use it in any lab. Do NOT mention unavailable services in lab instructions, even for comparison — students cannot access them.
+
+AVAILABLE SERVICES (ONLY these services can be used in labs):
+Amazon API Gateway, AWS App Mesh, Application Auto Scaling, Amazon Athena, Amazon Aurora,
+AWS Backup, AWS Batch, AWS Certificate Manager (ACM), AWS Cloud9, AWS CloudFormation,
+AWS CloudShell, AWS CloudTrail, Amazon CloudWatch, AWS CodeCommit, AWS CodeDeploy,
+AWS Config, AWS Cost and Usage Report, AWS Cost Explorer, AWS DeepComposer, AWS DeepLens,
+AWS DeepRacer, AWS Directory Service, Amazon DynamoDB, Amazon EC2 Auto Scaling,
+AWS Elastic Beanstalk, Amazon EBS, Amazon EC2, Amazon ECR, Amazon ECS, Amazon EFS,
+Amazon EKS, Elastic Load Balancing, Amazon EMR, Amazon ElastiCache, Amazon EventBridge,
+AWS Fargate, AWS Glue, AWS Glue DataBrew, Amazon GuardDuty, AWS Health, AWS IAM (limited),
+Amazon Inspector, AWS IoT 1-Click, AWS IoT Core, AWS IoT Greengrass, AWS KMS,
+Amazon Kinesis, AWS Lambda, Amazon Machine Learning, AWS Marketplace Subscriptions (read-only),
+AWS Mobile Hub, AWS OpsWorks, Amazon Q Developer, Amazon Redshift, Amazon Rekognition,
+Amazon RDS, AWS Resource Groups & Tag Editor, Amazon Route 53, Amazon SageMaker,
+AWS Secrets Manager, AWS Security Hub, AWS STS, AWS Serverless Application Repository,
+AWS Service Catalog, Amazon SNS, Amazon SQS, Amazon S3, Amazon S3 Glacier,
+Amazon SWF, AWS Step Functions, AWS Systems Manager, Amazon Textract,
+AWS Trusted Advisor, Amazon VPC, AWS WAF, AWS Well-Architected Tool
+
+SERVICES NOT AVAILABLE (do NOT use in labs — any service NOT listed above is unavailable):
+AWS Organizations, AWS Control Tower, AWS Direct Connect, AWS Transit Gateway,
+Amazon Bedrock, Amazon Cognito, Amazon MQ, AWS Storage Gateway, Amazon Connect,
+Amazon Lex, Amazon Polly, Amazon Translate, AWS DataSync, AWS Snow Family,
+Amazon FSx, Amazon Neptune, Amazon DocumentDB, Amazon Timestream, Amazon QLDB,
+Amazon Managed Blockchain, AWS Amplify, Amazon AppFlow, and any other service not in the list above.
 
 1. IAM RESTRICTIONS:
    - Students CANNOT create, modify, or delete IAM users, groups, roles, or policies
@@ -121,7 +164,8 @@ All labs run in the AWS Academy Learner Lab, a restricted sandbox environment. Y
 
 6. OTHER SERVICE RESTRICTIONS:
    - Cloud9: supported types nano through c4.xlarge; use SSH connection type
-   - EMR: instance types nano through large only; use EMR_DefaultRole and EMR_EC2_DefaultRole
+   - ElastiCache: available with no specific instance type restrictions documented
+   - EMR: instance types nano through large only; use EMR_DefaultRole and EMR_EC2_DefaultRole; cluster will not survive session end
    - Redshift: ra3.large only, maximum 2 instances per cluster
    - Glue: Worker type G.1X or Standard, max 10 workers, max concurrency 1
    - Route 53: cannot register domains
@@ -129,22 +173,19 @@ All labs run in the AWS Academy Learner Lab, a restricted sandbox environment. Y
    - CloudTrail: cannot enable CloudWatch logging for trails
    - Kinesis Data Analytics: use "Create with custom settings" and choose LabRole
    - Kinesis Delivery Stream: use "Advanced settings" and choose existing LabRole
+   - ECR: LabRole has read-only access; console user has write access
+   - Rekognition: max 1000 detected faces/labels, max 1 inference unit
 
 7. REGION AND ENVIRONMENT:
    - Access limited to us-east-1 and us-west-2 Regions only
-   - AWS Marketplace is NOT available
+   - AWS Marketplace is NOT available (read-only access to subscriptions only)
    - Environment is persistent — data and resources survive between sessions
    - Running EC2 instances are stopped when session ends, restarted next session
    - SageMaker notebook instances are stopped but NOT restarted next session
    - Budget limits apply — students can lose all work if budget is exceeded
 
-8. SERVICES NOT AVAILABLE (do NOT reference in labs):
-   - AWS Organizations, AWS Control Tower, AWS Direct Connect, AWS Transit Gateway
-   - Amazon Bedrock, Amazon Cognito, Amazon MQ, AWS Storage Gateway
-   - Any service not listed as available in the Learner Lab
-
-9. TERMINAL ACCESS:
-   - AWS CloudShell is available (has AWS CLI and Python/boto3 pre-installed)
+8. TERMINAL ACCESS:
+   - AWS CloudShell is available (has AWS CLI and Python/boto3 pre-installed; Amazon Q available in zsh)
    - EC2 Instance Connect works for Linux instances
    - Systems Manager Session Manager works if LabInstanceProfile is attached to the instance
    - For SSH in us-east-1, use the "vockey" key pair
@@ -370,6 +411,8 @@ IMPORTANT REMINDERS:
     )
 
     response_text = message.content[0].text
+    if message.stop_reason == "max_tokens":
+        response_text = _repair_truncated_json(response_text)
     return _parse_json_response(response_text, "Failed to parse response")
 
 
