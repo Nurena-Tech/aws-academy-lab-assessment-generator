@@ -72,7 +72,7 @@ All generated labs automatically respect these restrictions:
 - **Lambda:** Uses LabRole as execution role, max 10 concurrent environments
 - **Region:** Limited to us-east-1 and us-west-2
 - **Budget:** Cleanup steps included to preserve student budgets
-- **61 available services** — labs only use services accessible in the Learner Lab sandbox
+- **76 available services** — labs only use services accessible in the Learner Lab sandbox
 
 ---
 
